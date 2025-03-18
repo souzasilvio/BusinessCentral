@@ -1,4 +1,4 @@
-# BusinessCentral
+# Business Central
 Customization of Bussiness Central
 
 Case 1 - Add Preferred Contact Time to Customer Contact
