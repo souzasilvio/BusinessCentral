@@ -1,0 +1,50 @@
+name: Build Business Central Extension
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-extension:
+    runs-on: windows-latest
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Setup Business Central Build environment
+      - name: Set up environment
+        run: |
+          mkdir BuildOutput
+          Install-Module -Name BCContainerHelper -Force
+          New-BCContainer `
+            -containerName "bcbuild" `
+            -artifactUrl (Get-BCArtifactUrl -country us) `
+            -Credential (New-Object pscredential("admin", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)))
+
+      # Compile the extension
+      - name: Compile AL Extension
+        run: |
+          Invoke-ALC `
+            -containerName "bcbuild" `
+            -projectPath "$(Build.SourcesDirectory)" `
+            -outputPath "$(Build.SourcesDirectory)\BuildOutput" `
+            -signingKeyPath "$(Build.SourcesDirectory)\mykey.pfx"
+
+      # Validate the extension
+      - name: Validate Extension
+        run: |
+          Invoke-BCContainerValidation `
+            -containerName "bcbuild" `
+            -credential (New-Object pscredential("admin", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)))
+
+      # Publish the extension
+      - name: Publish Extension Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: BusinessCentralExtension
+          path: BuildOutput
